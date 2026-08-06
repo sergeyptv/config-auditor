@@ -1,0 +1,13 @@
+version: "2.2"
+
+storage:
+  digest-algorithm: MD5
+
+log:
+  level: info
+
+server:
+  host: 127.0.0.1
+
+tls:
+  enabled: true

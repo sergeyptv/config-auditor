@@ -1,0 +1,20 @@
+version: "1.0"
+
+log:
+  output: stdout
+  level: debug
+
+database:
+  host: database.internal
+  username: application
+  password: super-secret-password
+
+server:
+  host: 0.0.0.0
+  port: 8080
+
+client:
+  insecure_skip_verify: true
+
+storage:
+  digest-algorithm: MD5

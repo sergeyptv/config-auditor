@@ -1,0 +1,13 @@
+version: "1.0"
+
+server:
+  host: 127.0.0.1
+
+  tls:
+    enabled: false
+
+client:
+  insecure_skip_verify: true
+
+log:
+  level: info
