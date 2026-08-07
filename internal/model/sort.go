@@ -14,6 +14,10 @@ func SortIssues(issues []Issue) {
 			return leftSeverity > rightSeverity
 		}
 
+		if left.Source != right.Source {
+			return left.Source < right.Source
+		}
+
 		if left.RuleID != right.RuleID {
 			return left.RuleID < right.RuleID
 		}

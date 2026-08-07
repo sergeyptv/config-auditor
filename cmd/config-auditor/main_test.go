@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -275,5 +276,141 @@ func TestRunHelp(t *testing.T) {
 
 	if !strings.Contains(stderr.String(), "Usage:") {
 		t.Fatalf("expected usage information, got:\n%s", stderr.String())
+	}
+}
+
+func TestRunDetectsUnsafeFilePermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix file permissions are not supported on Windows")
+	}
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+
+	config := []byte(`
+log:
+  level: info
+
+server:
+  host: 127.0.0.1
+
+tls:
+  enabled: true
+`)
+
+	if err := os.WriteFile(configPath, config, 0o600); err != nil {
+		t.Fatalf("write test configuration: %v", err)
+	}
+
+	if err := os.Chmod(configPath, 0o666); err != nil {
+		t.Fatalf("change file permissions: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := run([]string{configPath}, strings.NewReader(""), &stdout, &stderr)
+
+	if exitCode != exitIssues {
+		t.Fatalf("expected exit code %d, got %d\nstdout:\n%s\nstderr:\n%s", exitIssues, exitCode, stdout.String(), stderr.String())
+	}
+
+	expectedRuleIDs := []string{
+		"FS002",
+		"FS004",
+	}
+
+	for _, ruleID := range expectedRuleIDs {
+		if !strings.Contains(stdout.String(), ruleID) {
+			t.Errorf("expected stdout to contain %q, got:\n%s", ruleID, stdout.String())
+		}
+	}
+}
+
+func TestRunRecursiveDirectory(t *testing.T) {
+	root := t.TempDir()
+
+	nestedDirectory := filepath.Join(root, "nested")
+
+	if err := os.Mkdir(nestedDirectory, 0o700); err != nil {
+		t.Fatalf("create nested directory: %v", err)
+	}
+
+	configPath := filepath.Join(nestedDirectory, "config.yaml")
+
+	if err := os.WriteFile(configPath, []byte(`
+database:
+  password: super-secret
+`), 0o600); err != nil {
+		t.Fatalf("write configuration: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := run([]string{"--recursive", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if exitCode != exitIssues {
+		t.Fatalf("expected exit code %d, got %d\nstdout:\n%s\nstderr:\n%s", exitIssues, exitCode, stdout.String(), stderr.String())
+	}
+
+	if !strings.Contains(stdout.String(), "CFG002") {
+		t.Fatalf("expected CFG002 issue, got:\n%s", stdout.String())
+	}
+
+	if !strings.Contains(stdout.String(), configPath) {
+		t.Fatalf("expected source path %q, got:\n%s", configPath, stdout.String())
+	}
+}
+
+func TestRunRecursiveSilentMode(t *testing.T) {
+	root := t.TempDir()
+
+	configPath := filepath.Join(root, "config.json")
+
+	if err := os.WriteFile(configPath, []byte(`{"log":{"level":"debug"}}`), 0o600); err != nil {
+		t.Fatalf("write configuration: %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := run([]string{"--recursive", "--silent", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if exitCode != exitSuccess {
+		t.Fatalf("expected exit code %d, got %d", exitSuccess, exitCode)
+	}
+
+	if !strings.Contains(stdout.String(), "CFG001") {
+		t.Fatalf("expected issue output, got:\n%s", stdout.String())
+	}
+}
+
+func TestRunRejectsRecursiveWithStdin(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := run([]string{"--recursive", "--stdin", "configs"}, strings.NewReader(""), &stdout, &stderr)
+
+	if exitCode != exitError {
+		t.Fatalf("expected exit code %d, got %d", exitError, exitCode)
+	}
+
+	if !strings.Contains(stderr.String(), "--recursive cannot be used together with --stdin") {
+		t.Fatalf("unexpected stderr:\n%s", stderr.String())
+	}
+}
+
+func TestRunRecursiveEmptyDirectory(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := run([]string{"--recursive", t.TempDir()}, strings.NewReader(""), &stdout, &stderr)
+
+	if exitCode != exitError {
+		t.Fatalf("expected exit code %d, got %d", exitError, exitCode)
+	}
+
+	if !strings.Contains(stderr.String(), "no supported configuration files found") {
+		t.Fatalf("unexpected stderr:\n%s", stderr.String())
 	}
 }

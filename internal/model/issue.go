@@ -11,6 +11,7 @@ const (
 type Issue struct {
 	RuleID         string   `json:"rule_id"`
 	Severity       Severity `json:"severity"`
+	Source         string   `json:"source,omitempty"`
 	Path           string   `json:"path,omitempty"`
 	Message        string   `json:"message"`
 	Recommendation string   `json:"recommendation"`
