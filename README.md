@@ -199,6 +199,59 @@ curl \
 }
 ```
 
+## gRPC API
+
+Сервис также можно запустить в gRPC-режиме.
+
+### Генерация protobuf
+
+```bash
+protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/configaudit/v1/auditor.proto
+```
+
+Сборка:
+
+```bash
+go build -o bin/config-auditor-grpc ./cmd/config-auditor-grpc
+```
+
+Запуск:
+
+```bash
+./bin/config-auditor-grpc
+```
+
+По умолчанию сервер слушает:
+
+```bash
+127.0.0.1:9090
+```
+
+gRPC-контракт находится в:
+
+```bash
+api/configaudit/v1/auditor.proto
+```
+
+Метод:
+
+```bash
+configaudit.v1.ConfigAuditor/Analyze
+```
+
+Поддерживает JSON, YAML и автоматическое определение формата.
+
+## Безопасность
+
+По умолчанию сервер привязан только к loopback-интерфейсу.
+
+Размер входящей конфигурации ограничен.
+
+Server reflection по умолчанию отключён.
+
+Транспортный TLS в тестовой реализации не настроен. При публикации gRPC API
+за пределами локального интерфейса необходимо использовать TLS или mTLS.
+
 ## Архитектура
 
 ```bash

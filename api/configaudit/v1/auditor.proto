@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package configaudit.v1;
+
+option go_package = "config-auditor/api/configaudit/v1;configauditv1";
+
+service ConfigAuditor {
+  rpc Analyze(AnalyzeRequest) returns (AnalyzeResponse);
+}
+
+enum ConfigFormat {
+  CONFIG_FORMAT_UNSPECIFIED = 0;
+  CONFIG_FORMAT_JSON = 1;
+  CONFIG_FORMAT_YAML = 2;
+}
+
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  SEVERITY_LOW = 1;
+  SEVERITY_MEDIUM = 2;
+  SEVERITY_HIGH = 3;
+}
+
+message AnalyzeRequest {
+  bytes config = 1;
+  ConfigFormat format = 2;
+}
+
+message Issue {
+  string rule_id = 1;
+  Severity severity = 2;
+  string path = 3;
+  string message = 4;
+  string recommendation = 5;
+}
+
+message AnalyzeResponse {
+  repeated Issue issues = 1;
+  uint32 count = 2;
+}
