@@ -1,3 +1,8 @@
+
+
+[![Go CI](https://github.com/sergeyptv/config-auditor/actions/workflows/go.yml/badge.svg)](https://github.com/sergeyptv/config-auditor/actions/workflows/go.yml)
+
+
 # Config Auditor
 
 CLI-утилита на Go для анализа JSON- и YAML-конфигураций веб-приложений и обнаружения потенциально опасных настроек.
